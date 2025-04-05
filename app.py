@@ -35,33 +35,43 @@ def send_email(to_email, subject, message):
     try:
         print("Sending email to:", to_email)
         print("Subject:", subject)
-        print("Message:", message)
 
         from_email = 'regentcsci450@gmail.com'
-        password = 'rfzz foex ygob vsso'
+        password = 'rfzz foex ygob vsso'  
         smtp_server = 'smtp.gmail.com'
         smtp_port = 587
 
-        subject = f"Registration Confirmation for {to_email}"
-        message = f"Dear {to_email},\n\nThank you for signing up for the Summer Camp!"
+        
+        html_message = f"""
+        <html>
+            <body>
+                <h2>Registration Confirmation</h2>
+                <p>Dear {to_email},</p>
+                <p>Thank you for signing up for the <strong>Summer Camp</strong>!</p>
+                <p>We’re excited to have you join us. If you have any questions, feel free to reply to this email.</p>
+                <br>
+                <p>Best regards,</p>
+                <p><strong>Regent University Summer Camp Team</strong></p>
+            </body>
+        </html>
+        """
 
-        msg = MIMEText(message)
+        # Construct MIMEText object with HTML content
+        msg = MIMEText(html_message, 'html')  # Use 'html' as the content type
         msg['Subject'] = subject
         msg['From'] = from_email
         msg['To'] = to_email
+        msg['X-Mailer'] = 'Python SMTP Script'  # Add this header for email tracking
+        msg['Reply-To'] = from_email
 
+        # Connect to the SMTP server and send the email
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
         server.login(from_email, password)
-        server.sendmail(from_email, to_email, msg.as_string()) 
-        response = server.sendmail(from_email, [to_email], msg.as_string())
-        if response:
-            print("SMTP Error Details:", response)
-        else:
-            print("Email handed over to SMTP server successfully.")
+        server.sendmail(from_email, to_email, msg.as_string())
         server.quit()
 
-        print("Email sent successfully!")
+        print("HTML Email sent successfully!")
     except Exception as e:
         print("Failed to send email:", e)
 
