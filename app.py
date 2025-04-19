@@ -10,7 +10,7 @@ app.secret_key = 'your_secret_key'  # Used for session-based flash messages
 
 # Function to initialize the database and create tables
 def initialize_database():
-    conn = sqlite3.connect('/tmp/summer_camp.db')  # Store DB in /tmp folder
+    conn = sqlite3.connect('summer_camp.db')  # Store DB in /tmp folder
     cursor = conn.cursor()
 
     # Create Families table
