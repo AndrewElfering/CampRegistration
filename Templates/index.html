@@ -2,17 +2,42 @@
 <html>
 <head>
     <title>Summer Camp Registration</title>
+    <style>
+        body {
+            text-align: center; /* Center all elements */
+            font-family: Arial, sans-serif;
+        }
+        .info-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        form {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome to Regent's Summer Camp!</h1>
+
+    <!-- Spots Available & Waitlist Side by Side -->
+    <div class="info-container">
+        <p>Spots Available: {{ remaining_spots }}</p>
+        <p>Waitlist Size: {{ waitlist_size }}</p>
+    </div>
+
     <h2>Sign Up</h2>
-    <form method="POST" action="/signup">
-        <label>Name:</label><br>
-        <input type="text" name="name" required><br>
-        <label>Email:</label><br>
-        <input type="email" name="email" required><br>
-        <button type="submit">Register</button>
-    </form>
+    {% if remaining_spots > 0 %}
+        <form method="POST" action="/signup">
+            <label>Name:</label><br>
+            <input type="text" name="name" required><br>
+            <label>Email:</label><br>
+            <input type="email" name="email" required><br>
+            <button type="submit">Register</button>
+        </form>
+    {% endif %}
 
     <h2>Cancel Registration</h2>
     <form method="POST" action="/cancel">
@@ -21,18 +46,6 @@
         <button type="submit">Cancel</button>
     </form>
 
-    <p>Spots Available: {{ remaining_spots }}</p>
-    <p>Waitlist Size: {{ waitlist_size }}</p>
-    
-    <!-- Show Signup Form Only When Spots Are Available -->
-    {% if remaining_spots > 0 %}
-        <form action="/signup" method="post">
-            <input type="text" name="name" placeholder="Your Name" required>
-            <input type="email" name="email" placeholder="Your Email" required>
-            <button type="submit">Sign Up</button>
-        </form>
-    {% endif %}
-    
     <!-- Show Waitlist Form Only When Camp Is Full -->
     {% if remaining_spots == 0 %}
         <p style="color: red;">Registration is full. Join the waitlist!</p>
