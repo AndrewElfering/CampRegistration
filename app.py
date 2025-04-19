@@ -10,7 +10,7 @@ app.secret_key = 'your_secret_key'  # Used for session-based flash messages
 
 # Function to initialize the database and create tables
 def initialize_database():
-    conn = sqlite3.connect('summer_camp.db')
+    conn = sqlite3.connect('/tmp/summer_camp.db')  # Store DB in /tmp folder
     cursor = conn.cursor()
 
     # Create Families table
@@ -79,21 +79,25 @@ def send_email(to_email, subject, message):
 # Homepage route
 @app.route('/')
 def index():
-    conn = sqlite3.connect('summer_camp.db')
-    cursor = conn.cursor()
+    try:
+        conn = sqlite3.connect('summer_camp.db')
+        cursor = conn.cursor()
 
-    # Count registered families
-    cursor.execute('SELECT COUNT(*) FROM Families')
-    current_signups = cursor.fetchone()[0]  # This should correctly count sign-ups
-    remaining_spots = max(0, 2 - current_signups)  # Start at 2, decrease as people register
+        # Count registered families
+        cursor.execute('SELECT COUNT(*) FROM Families')
+        current_signups = cursor.fetchone()[0]
+        remaining_spots = max(0, 2 - current_signups)
 
-    # Count waitlisted users
-    cursor.execute('SELECT COUNT(*) FROM Waitlist')
-    waitlist_size = cursor.fetchone()[0]  # Get the number of people waiting
+        # Count waitlisted users
+        cursor.execute('SELECT COUNT(*) FROM Waitlist')
+        waitlist_size = cursor.fetchone()[0]
 
-    conn.close()
-    return render_template('index.html', remaining_spots=remaining_spots, waitlist_size=waitlist_size)
-
+        conn.close()
+        return render_template('index.html', remaining_spots=remaining_spots, waitlist_size=waitlist_size)
+    
+    except Exception as e:
+        return f"Error: {str(e)}", 500  # Display error message instead of crashing
+    
 # Route for signing up new families
 import random
 import string
