@@ -21,6 +21,24 @@
         <button type="submit">Cancel</button>
     </form>
 
+<p>Spots Available: {{ remaining_spots }}</p>
+<p>Waitlist Size: {{ waitlist_size }}</p>
+
+{% if remaining_spots > 0 %}
+    <form action="/signup" method="post">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <button type="submit">Sign Up</button>
+    </form>
+{% else %}
+    <p style="color: red;">Registration is full. Join the waitlist!</p>
+    <form action="/signup" method="post">
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <button type="submit">Join Waitlist</button>
+    </form>
+{% endif %}
+
     {% with messages = get_flashed_messages() %}
     {% if messages %}
         <ul>
