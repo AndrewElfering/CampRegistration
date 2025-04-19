@@ -22,7 +22,7 @@ def initialize_database():
         )
     ''')
 
-    # Create Participants table
+    # Create Participants table with Registration ID
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Participants (
             participant_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,6 +30,7 @@ def initialize_database():
             name TEXT NOT NULL,
             age INTEGER NOT NULL,
             status TEXT NOT NULL,
+            registration_id TEXT UNIQUE NOT NULL,
             FOREIGN KEY (family_id) REFERENCES Families (family_id)
         )
     ''')
@@ -50,48 +51,28 @@ def initialize_database():
 # Function to send an email notification
 def send_email(to_email, subject, message):
     try:
-        print("Sending email to:", to_email)  # Debugging print statements
-        print("Subject:", subject)
+        from_email = 'regentcsci450@gmail.com'
+        password = 'rfzz foex ygob vsso'
+        smtp_server = 'smtp.gmail.com'
+        smtp_port = 587
 
-        # Email credentials and server settings
-        from_email = 'regentcsci450@gmail.com'  # Sender email address
-        password = 'rfzz foex ygob vsso'  # Password for SMTP authentication
-        smtp_server = 'smtp.gmail.com'  # SMTP server for Gmail
-        smtp_port = 587  # Port for TLS encryption
-
-        # Constructing the HTML email message
-        html_message = f"""
-        <html>
-            <body>
-                <h2>Registration Confirmation</h2>
-                <p>Dear {to_email},</p>
-                <p>Thank you for signing up for the <strong>Summer Camp</strong>!</p>
-                <p>We’re excited to have you join us. If you have any questions, feel free to reply to this email.</p>
-                <br>
-                <p>Best regards,</p>
-                <p><strong>Regent University Summer Camp Team</strong></p>
-            </body>
-        </html>
-        """
-
-        # Formatting email as HTML
-        msg = MIMEText(html_message, 'html')
+        # Create email message dynamically
+        msg = MIMEText(message, 'plain')  # Ensure the message comes from signup/cancellation
         msg['Subject'] = subject
         msg['From'] = from_email
         msg['To'] = to_email
-        msg['X-Mailer'] = 'Python SMTP Script'
-        msg['Reply-To'] = from_email
 
-        # Connect to the SMTP server and send the email
+        # Connect to SMTP and send email
         server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()  # Start TLS encryption
-        server.login(from_email, password)  # Log in to the email account
-        server.sendmail(from_email, to_email, msg.as_string())  # Send email
-        server.quit()  # Close connection
+        server.starttls()
+        server.login(from_email, password)
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
 
-        print("HTML Email sent successfully!")  # Confirmation message
+        print("Email sent successfully!")  # Debugging output
+    
     except Exception as e:
-        print("Failed to send email:", e)  # Handle errors gracefully
+        print("Failed to send email:", e)
 
 # Define Flask routes
 
@@ -114,65 +95,93 @@ def index():
     return render_template('index.html', remaining_spots=remaining_spots, waitlist_size=waitlist_size)
 
 # Route for signing up new families
+import random
+import string
+
+def generate_registration_id():
+    """Generate a unique registration ID."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))  # Example: "AB12CD34"
+
 @app.route('/signup', methods=['POST'])
 def signup():
     name = request.form['name']
     email = request.form['email']
+    registration_id = generate_registration_id()  # Generate unique Registration ID
 
     conn = sqlite3.connect('summer_camp.db')
     cursor = conn.cursor()
 
-    # Check current signups
+    # Count current signups
     cursor.execute('SELECT COUNT(*) FROM Families')
     current_signups = cursor.fetchone()[0]
     remaining_spots = max(0, 2 - current_signups)
 
-    if remaining_spots > 0:  # If spots are available, add to Participants
+    if remaining_spots > 0:  # Register participant
         cursor.execute('INSERT INTO Families (name, email) VALUES (?, ?)', (name, email))
-        family_id = cursor.lastrowid  # Get new Family ID
+        family_id = cursor.lastrowid  # Get family ID
 
-        cursor.execute('INSERT INTO Participants (family_id, name, age, status) VALUES (?, ?, ?, ?)',
-                       (family_id, name, 10, 'registered'))  # Age is placeholder, replace with input
+        # Insert participant into database
+        cursor.execute('INSERT INTO Participants (family_id, name, age, status, registration_id) VALUES (?, ?, ?, ?, ?)',
+                       (family_id, name, 10, 'registered', registration_id))
+        conn.commit()
 
-        send_email(email, "Registration Confirmation", "Thank you for signing up for the Summer Camp!")
-        flash("Registration successful! A confirmation email has been sent.")
+        # Fetch the Registration ID from the database (making sure it was inserted correctly)
+        cursor.execute('SELECT registration_id FROM Participants WHERE family_id = ?', (family_id,))
+        stored_registration_id = cursor.fetchone()[0]  # Correctly retrieve stored ID
+
+        # Send confirmation email with the correct Registration ID
+        send_email(email, "Registration Confirmation",
+                   f"Thank you for signing up for the Summer Camp!\nYour Registration ID: {stored_registration_id}\nUse this ID if you wish to cancel.")
+
+        flash(f"Registration successful! Your Registration ID: {stored_registration_id}. A confirmation email has been sent.")
     
-    else:  # If camp is full, add user to Waitlist
-        cursor.execute('INSERT INTO Waitlist (name, email) VALUES (?, ?)', (name, email))
-        send_email(email, "Waitlist Confirmation", "You’ve been added to the Summer Camp waitlist.")
-        flash("Registration is full. You've been added to the waitlist.")
+    else:  # Add user to the waitlist with Registration ID
+        cursor.execute('INSERT INTO Waitlist (name, email, registration_id) VALUES (?, ?, ?)', (name, email, registration_id))
+        conn.commit()
 
-    conn.commit()
+        send_email(email, "Waitlist Confirmation",
+                   f"You’ve been added to the Summer Camp waitlist!\nYour Waitlist Registration ID: {registration_id}\nUse this ID if you wish to cancel.")
+
+        flash(f"Registration is full. You've been added to the waitlist with Registration ID: {registration_id}.")
+
     conn.close()
     return redirect(url_for('index'))
 
 # Route for canceling a registration
 @app.route('/cancel', methods=['POST'])
 def cancel():
-    email = request.form['email']
+    registration_id = request.form['registration_id']  # Get Registration ID input
 
     conn = sqlite3.connect('summer_camp.db')
     cursor = conn.cursor()
 
-    # Remove the family from the database
-    cursor.execute('DELETE FROM Families WHERE email = ?', (email,))
-    conn.commit()
+    # Find participant with this Registration ID
+    cursor.execute('SELECT family_id FROM Participants WHERE registration_id = ?', (registration_id,))
+    family_record = cursor.fetchone()
 
-    # Check if there’s anyone on the waitlist
-    cursor.execute('SELECT waitlist_id, name, email FROM Waitlist ORDER BY timestamp LIMIT 1')
-    waitlisted_user = cursor.fetchone()
+    if family_record:
+        family_id = family_record[0]
 
-    if waitlisted_user:  # If someone is on the waitlist, move them into the Families table
-        waitlist_id, name, waitlist_email = waitlisted_user
-        cursor.execute('INSERT INTO Families (name, email) VALUES (?, ?)', (name, waitlist_email))
-        cursor.execute('DELETE FROM Waitlist WHERE waitlist_id = ?', (waitlist_id,))
+        # Remove participant from Participants table
+        cursor.execute('DELETE FROM Participants WHERE registration_id = ?', (registration_id,))
         conn.commit()
 
-        send_email(waitlist_email, "Waitlist Promotion", "A spot has opened up! You're now registered for the camp.")
-        flash(f"{name} has been moved from the waitlist to the camp!")
+        # Remove family record if no participants remain
+        cursor.execute('SELECT COUNT(*) FROM Participants WHERE family_id = ?', (family_id,))
+        remaining_participants = cursor.fetchone()[0]
+
+        if remaining_participants == 0:
+            cursor.execute('DELETE FROM Families WHERE family_id = ?', (family_id,))
+            conn.commit()
+
+        send_email("Your registered email", "Registration Cancellation",
+                   f"Your registration (ID: {registration_id}) has been canceled.")
+        flash("Your registration has been canceled.")
     
+    else:
+        flash("Invalid Registration ID. Please try again.")
+
     conn.close()
-    flash("Your registration has been canceled.")
     return redirect(url_for('index'))
 
 # Entry point: starts the Flask application

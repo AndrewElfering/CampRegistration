@@ -9,3 +9,4 @@ conn.commit()
 conn.close()
 
 print("Database reset! Spots should now correctly display 2 at start.")
+
