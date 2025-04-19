@@ -1,0 +1,5 @@
+flask
+gunicorn
+sqlite3
+flask-mail
+flask-wtf
