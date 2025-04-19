@@ -191,4 +191,4 @@ def cancel():
 # Entry point: starts the Flask application
 if __name__ == "__main__":
     initialize_database()  # Ensure database is set up
-    app.run(debug=True)  # Run Flask server with debugging enabled
+    app.run(debug=True)  # Run Flask server with debugging enabled  
