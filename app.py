@@ -10,28 +10,42 @@ app.secret_key = 'your_secret_key'  # Used for session-based flash messages
 
 # Function to initialize the database and create tables
 def initialize_database():
-    conn = sqlite3.connect('summer_camp.db')  # Connect to SQLite database (or create one if it doesn't exist)
-    cursor = conn.cursor()  # Create a cursor to execute SQL queries
+    conn = sqlite3.connect('summer_camp.db')
+    cursor = conn.cursor()
 
-    # Create Families table if it doesn't exist
-    cursor.execute('''CREATE TABLE IF NOT EXISTS Families (
-                        family_id INTEGER PRIMARY KEY AUTOINCREMENT,  # Auto-incrementing unique identifier
-                        name TEXT NOT NULL,  # Family name (required)
-                        email TEXT NOT NULL  # Email address (required)
-                      )''')
+    # Create Families table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Families (
+            family_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL
+        )
+    ''')
 
-    # Create Participants table if it doesn't exist
-    cursor.execute('''CREATE TABLE IF NOT EXISTS Participants (
-                        participant_id INTEGER PRIMARY KEY AUTOINCREMENT,  # Auto-incrementing unique identifier
-                        family_id INTEGER,  # Foreign key linking to Families table
-                        name TEXT NOT NULL,  # Participant's name (required)
-                        age INTEGER NOT NULL,  # Age (required)
-                        status TEXT NOT NULL,  # Status (e.g., "registered", "canceled") (required)
-                        FOREIGN KEY (family_id) REFERENCES Families (family_id)  # Ensures referential integrity
-                      )''')
+    # Create Participants table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Participants (
+            participant_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            family_id INTEGER,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            FOREIGN KEY (family_id) REFERENCES Families (family_id)
+        )
+    ''')
 
-    conn.commit()  # Commit changes to the database
-    conn.close()  # Close the connection
+    # Create Waitlist table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Waitlist (
+            waitlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
 
 # Function to send an email notification
 def send_email(to_email, subject, message):
