@@ -103,12 +103,12 @@ def index():
 
     # Count registered families
     cursor.execute('SELECT COUNT(*) FROM Families')
-    current_signups = cursor.fetchone()[0]
-    remaining_spots = max(0, 2 - current_signups)
+    current_signups = cursor.fetchone()[0]  # This should correctly count sign-ups
+    remaining_spots = max(0, 2 - current_signups)  # Start at 2, decrease as people register
 
     # Count waitlisted users
     cursor.execute('SELECT COUNT(*) FROM Waitlist')
-    waitlist_size = cursor.fetchone()[0]
+    waitlist_size = cursor.fetchone()[0]  # Get the number of people waiting
 
     conn.close()
     return render_template('index.html', remaining_spots=remaining_spots, waitlist_size=waitlist_size)
@@ -116,23 +116,35 @@ def index():
 # Route for signing up new families
 @app.route('/signup', methods=['POST'])
 def signup():
-    name = request.form['name']  # Retrieve name from form submission
-    email = request.form['email']  # Retrieve email from form submission
+    name = request.form['name']
+    email = request.form['email']
 
-    conn = sqlite3.connect('summer_camp.db')  # Open database connection
+    conn = sqlite3.connect('summer_camp.db')
     cursor = conn.cursor()
 
-    # Insert new family into the database
-    cursor.execute('INSERT INTO Families (name, email) VALUES (?, ?)', (name, email))
-    family_id = cursor.lastrowid  # Get ID of the newly added family
+    # Check current signups
+    cursor.execute('SELECT COUNT(*) FROM Families')
+    current_signups = cursor.fetchone()[0]
+    remaining_spots = max(0, 2 - current_signups)
+
+    if remaining_spots > 0:  # If spots are available, add to Participants
+        cursor.execute('INSERT INTO Families (name, email) VALUES (?, ?)', (name, email))
+        family_id = cursor.lastrowid  # Get new Family ID
+
+        cursor.execute('INSERT INTO Participants (family_id, name, age, status) VALUES (?, ?, ?, ?)',
+                       (family_id, name, 10, 'registered'))  # Age is placeholder, replace with input
+
+        send_email(email, "Registration Confirmation", "Thank you for signing up for the Summer Camp!")
+        flash("Registration successful! A confirmation email has been sent.")
+    
+    else:  # If camp is full, add user to Waitlist
+        cursor.execute('INSERT INTO Waitlist (name, email) VALUES (?, ?)', (name, email))
+        send_email(email, "Waitlist Confirmation", "You’ve been added to the Summer Camp waitlist.")
+        flash("Registration is full. You've been added to the waitlist.")
+
     conn.commit()
-    conn.close()  # Close connection
-
-    # Send confirmation email
-    send_email(email, "Registration Confirmation", "Thank you for signing up for the Summer Camp!")
-
-    flash("Registration successful! A confirmation email has been sent.")  # Notify user
-    return redirect(url_for('index'))  # Redirect to homepage
+    conn.close()
+    return redirect(url_for('index'))
 
 # Route for canceling a registration
 @app.route('/cancel', methods=['POST'])
