@@ -33,7 +33,7 @@ This system allows families to register for Regent University's STEM Summer Camp
 ## How to Use
 
 ### Register for the Camp
-1. Go to the home page.
+1. Go to the home page: https://campregistration.onrender.com/
 2. Check the number of **Spots Available**.
 3. If spots are available, fill out the **Name** and **Email** fields under "Sign Up".
 4. Click the **Register** button.
