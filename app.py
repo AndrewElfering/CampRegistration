@@ -86,7 +86,7 @@ def index():
         # Count registered families
         cursor.execute('SELECT COUNT(*) FROM Families')
         current_signups = cursor.fetchone()[0]
-        remaining_spots = max(0, 2 - current_signups)
+        remaining_spots = max(0, 5 - current_signups)
 
         # Count waitlisted users
         cursor.execute('SELECT COUNT(*) FROM Waitlist')
